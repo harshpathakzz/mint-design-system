@@ -30,23 +30,19 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history for comparing changes
 
-      # Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20.17.0'
 
-      # Install pnpm
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
           version: latest
 
-      # Install dependencies
       - name: Install dependencies
         run: pnpm install
 
-      # Get changed files
       - name: Get changed files
         id: changed-files
         uses: tj-actions/changed-files@v40
@@ -60,11 +56,11 @@ jobs:
             **/*.scss
             **/*.sass
 
-      # Run ESLint on changed files
       - name: Run ESLint
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
-          CHANGED_JS_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | grep -E '\.(js|jsx|ts|tsx)$' || true)
+          # Convert newline-separated files to space-separated and filter JS/TS files
+          CHANGED_JS_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr '\n' ' ' | xargs -n1 | grep -E "\.(js|jsx|ts|tsx)$" | tr '\n' ' ' || true)
           if [ ! -z "$CHANGED_JS_FILES" ]; then
             echo "Linting JavaScript/TypeScript files:"
             echo "$CHANGED_JS_FILES"
@@ -73,11 +69,11 @@ jobs:
             echo "No JavaScript/TypeScript files to lint"
           fi
 
-      # Run Stylelint on changed files
       - name: Run Stylelint
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
-          CHANGED_STYLE_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | grep -E '\.(css|scss|sass)$' || true)
+          # Convert newline-separated files to space-separated and filter style files
+          CHANGED_STYLE_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr '\n' ' ' | xargs -n1 | grep -E "\.(css|scss|sass)$" | tr '\n' ' ' || true)
           if [ ! -z "$CHANGED_STYLE_FILES" ]; then
             echo "Linting style files:"
             echo "$CHANGED_STYLE_FILES"
