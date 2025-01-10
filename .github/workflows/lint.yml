@@ -1,87 +1,42 @@
-name: Lint Code
+name: Lint
 
 on:
-  push:
-    paths:
-      - '**/*.ts'
-      - '**/*.tsx'
-      - '**/*.js'
-      - '**/*.jsx'
-      - '**/*.css'
-      - '**/*.scss'
-      - '**/*.sass'
   pull_request:
-    paths:
-      - '**/*.ts'
-      - '**/*.tsx'
-      - '**/*.js'
-      - '**/*.jsx'
-      - '**/*.css'
-      - '**/*.scss'
-      - '**/*.sass'
+    branches: [ '*' ]
 
 jobs:
   lint:
+    name: Run Linters
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Fetch all history for comparing changes
+        uses: actions/checkout@v4
 
-      # Set up Node.js
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20.17.0'
-
-      # Install pnpm
-      - name: Install pnpm
+      - name: Setup PNPM
         uses: pnpm/action-setup@v2
         with:
-          version: latest
+          version: 8
 
-      # Install dependencies
-      - name: Install dependencies
-        run: pnpm install
-
-      # Get changed files
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v40
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          files: |
-            **/*.ts
-            **/*.tsx
-            **/*.js
-            **/*.jsx
-            **/*.css
-            **/*.scss
-            **/*.sass
+          node-version: '20.17.0'
+          cache: 'pnpm'
 
-      # Run ESLint on changed files
+      - name: Install dependencies
+        run: pnpm install 
+
       - name: Run ESLint
-        if: steps.changed-files.outputs.any_changed == 'true'
-        run: |
-          CHANGED_JS_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | grep -E '\.(js|jsx|ts|tsx)$' || true)
-          if [ ! -z "$CHANGED_JS_FILES" ]; then
-            echo "Linting JavaScript/TypeScript files:"
-            echo "$CHANGED_JS_FILES"
-            pnpm eslint $CHANGED_JS_FILES --max-warnings=0
-          else
-            echo "No JavaScript/TypeScript files to lint"
-          fi
+        run: pnpm run lint:eslint
+        continue-on-error: false
 
-      # Run Stylelint on changed files
       - name: Run Stylelint
-        if: steps.changed-files.outputs.any_changed == 'true'
+        run: pnpm run lint:stylelint
+        continue-on-error: false
+
+      - name: Check for lint errors
+        if: ${{ failure() }}
         run: |
-          CHANGED_STYLE_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | grep -E '\.(css|scss|sass)$' || true)
-          if [ ! -z "$CHANGED_STYLE_FILES" ]; then
-            echo "Linting style files:"
-            echo "$CHANGED_STYLE_FILES"
-            pnpm stylelint $CHANGED_STYLE_FILES --max-warnings=0
-          else
-            echo "No style files to lint"
-          fi
+          echo "Linting failed! Please fix the errors above and try again."
+          exit 1

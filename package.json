@@ -6,10 +6,12 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint:eslint": "eslint",
-    "lint:stylelint": "stylelint'"
+    "lint": "pnpm run lint:eslint && pnpm run lint:stylelint",
+    "lint:eslint": "eslint .",
+    "lint:stylelint": "stylelint '**/*.css'"
   },
   "dependencies": {
+    "@groww-tech/mint-css": "^0.2.1",
     "next": "15.1.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
