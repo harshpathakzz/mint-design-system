@@ -1,3 +1,4 @@
 .test{
     color: var(--content-accent);
+    --green500: #00c853;
 }
