@@ -6,9 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "pnpm run lint:eslint && pnpm run lint:stylelint",
-    "lint:eslint": "eslint .",
-    "lint:stylelint": "stylelint '**/*.css'"
+    "lint:eslint": "eslint",
+    "lint:stylelint": "stylelint'"
   },
   "dependencies": {
     "next": "15.1.4",
