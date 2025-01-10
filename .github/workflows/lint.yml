@@ -2,7 +2,9 @@ name: Lint Check
 
 on:
   pull_request:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
 
 jobs:
   lint:
@@ -12,69 +14,56 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v19
+
+      - name: Filter JavaScript/TypeScript changed files
+        id: js-ts-files
+        run: |
+          js_ts_files=""
+          IFS=$'\n'
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            if [[ $file == *.js || $file == *.jsx || $file == *.ts || $file == *.tsx ]]; then
+              js_ts_files="${js_ts_files} ${file}"
+            fi
+          done
+          echo "js_ts_files=${js_ts_files}" >> $GITHUB_OUTPUT
+
+      - name: Filter CSS/SCSS/SASS changed files
+        id: css-files
+        run: |
+          css_files=""
+          IFS=$'\n'
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            if [[ $file == *.css || $file == *.scss || $file == *.sass ]]; then
+              css_files="${css_files} ${file}"
+            fi
+          done
+          echo "css_files=${css_files}" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20.17.0'
+          node-version: '20.x'
 
-      - name: Install pnpm
+      - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 8
-          run_install: false
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install 
+        run: pnpm install --frozen-lockfile=false
 
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v41
-        with:
-          files: |
-            **/*.js
-            **/*.jsx
-            **/*.ts
-            **/*.tsx
-            **/*.css
-            **/*.scss
-            **/*.sass
-
-      - name: Run ESLint on changed files
-        if: steps.changed-files.outputs.any_changed == 'true'
+      - if: steps.js-ts-files.outputs.js_ts_files != ''
+        name: Run ESLint
         run: |
-          ESLINT_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | grep -E '\.((j|t)sx?|vue)$' || true)
-          if [ ! -z "$ESLINT_FILES" ]; then
-            echo "Running ESLint on changed files:"
-            echo "$ESLINT_FILES"
-            pnpm eslint $ESLINT_FILES --max-warnings=0
-          else
-            echo "No JavaScript/TypeScript files changed"
-          fi
+          echo "Linting JavaScript/TypeScript files: ${{ steps.js-ts-files.outputs.js_ts_files }}"
+          pnpm eslint ${{ steps.js-ts-files.outputs.js_ts_files }} --max-warnings=0
 
-      - name: Run StyleLint on changed files
-        if: steps.changed-files.outputs.any_changed == 'true'
+      - if: steps.css-files.outputs.css_files != ''
+        name: Run Stylelint
         run: |
-          STYLE_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | grep -E '\.(css|scss|sass)$' | tr '\n' ' ' || true)
-          if [ ! -z "$STYLE_FILES" ]; then
-            echo "Running StyleLint on changed files:"
-            echo "$STYLE_FILES"
-            pnpm stylelint $STYLE_FILES
-          else
-            echo "No style files changed"
-          fi
+          echo "Linting CSS/SCSS/SASS files: ${{ steps.css-files.outputs.css_files }}"
+          pnpm stylelint ${{ steps.css-files.outputs.css_files }}
