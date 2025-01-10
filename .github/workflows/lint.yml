@@ -40,7 +40,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install 
 
       - name: Get changed files
         id: changed-files
@@ -70,7 +70,7 @@ jobs:
       - name: Run StyleLint on changed files
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
-          STYLE_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | grep -E '\.(css|scss|sass)$' || true)
+          STYLE_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | grep -E '\.(css|scss|sass)$' | tr '\n' ' ' || true)
           if [ ! -z "$STYLE_FILES" ]; then
             echo "Running StyleLint on changed files:"
             echo "$STYLE_FILES"
