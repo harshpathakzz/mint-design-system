@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className={styles.page}>
       <main className={styles.main} style={{
-        color: 'var(--green500'
+        color: 'var(--green500)'
       }}>
         <Image
           className={styles.logo}
