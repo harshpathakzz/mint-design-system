@@ -1,83 +1,89 @@
-name: Lint Code
+name: Lint Action
 
 on:
-  push:
-    paths:
-      - '**/*.ts'
-      - '**/*.tsx'
-      - '**/*.js'
-      - '**/*.jsx'
-      - '**/*.css'
-      - '**/*.scss'
-      - '**/*.sass'
   pull_request:
-    paths:
-      - '**/*.ts'
-      - '**/*.tsx'
-      - '**/*.js'
-      - '**/*.jsx'
-      - '**/*.css'
-      - '**/*.scss'
-      - '**/*.sass'
+    branches: ['**']
 
 jobs:
   lint:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Fetch all history for comparing changes
+      - uses: actions/checkout@v3
 
-      - name: Set up Node.js
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v19
+
+      - name: Echo the js/ts changed files
+        id: changed
+        run: |
+          a=""
+          IFS=$'\n'
+          all_changed_files='"'"${{ steps.changed-files.outputs.all_changed_files }}"'"'
+          cleaned_paths=$(echo $all_changed_files | tr -d '()')
+          for file in $cleaned_paths; do
+            if [[ $file == *.js || $file == *.jsx || $file == *.ts || $file == *.tsx ]]; then
+            a="${a} ${file}"
+            fi
+          done
+          echo "changed_file=$a" >> $GITHUB_OUTPUT
+
+      - name: Echo the css changed files
+        id: css-changed
+        run: |
+          b=""
+          IFS=$'\n'
+          all_changed_files='"'"${{ steps.changed-files.outputs.all_changed_files }}"'"'
+          cleaned_paths=$(echo $all_changed_files | tr -d '()')
+          for file in $cleaned_paths; do
+            if [[ $file == *.css ]]; then
+            b="${b} ${file}"
+            fi
+          done
+          echo "changed_css_file=$b" >> $GITHUB_OUTPUT
+
+      - name: Check for eslint-disable comments
+        run: |
+          base_branch=${{ github.base_ref }}
+          changed_files=$(git diff --name-only $base_branch HEAD)
+
+          if [ -z "$changed_files" ]; then
+            echo "No changed files."
+            exit 0
+          fi
+
+          exit_code=0
+
+          for file in $changed_files; do
+            if [ -f "$file" ] && grep -q -E '(/\* eslint-disable-next-line no-restricted-imports \*/|/\* eslint-disable no-restricted-imports \*/|/\* eslint-disable \*/)' "$file"; then
+              echo "Found eslint-disable or eslint-disable-next-line comments in $file."
+              exit_code=1
+            fi
+          done
+
+          if [ $exit_code -eq 0 ]; then
+            echo "No eslint-disable or eslint-disable-next-line comments found in changed files."
+          fi
+
+          exit $exit_code
+
+      - name: Use Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20.17.0'
 
-      - name: Install pnpm
+      - name: Use pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: latest
+          version: 'latest'
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v40
-        with:
-          files: |
-            **/*.ts
-            **/*.tsx
-            **/*.js
-            **/*.jsx
-            **/*.css
-            **/*.scss
-            **/*.sass
+      - if: steps.changed.outputs.changed_file != ''
+        name: Run ESLint
+        run: pnpm eslint ${{ steps.changed.outputs.changed_file }}
 
-      - name: Run ESLint
-        if: steps.changed-files.outputs.any_changed == 'true'
-        run: |
-          # Convert newline-separated files to space-separated and filter JS/TS files
-          CHANGED_JS_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr '\n' ' ' | xargs -n1 | grep -E "\.(js|jsx|ts|tsx)$" | tr '\n' ' ' || true)
-          if [ ! -z "$CHANGED_JS_FILES" ]; then
-            echo "Linting JavaScript/TypeScript files:"
-            echo "$CHANGED_JS_FILES"
-            pnpm eslint $CHANGED_JS_FILES --max-warnings=0
-          else
-            echo "No JavaScript/TypeScript files to lint"
-          fi
-
-      - name: Run Stylelint
-        if: steps.changed-files.outputs.any_changed == 'true'
-        run: |
-          # Convert newline-separated files to space-separated and filter style files
-          CHANGED_STYLE_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr '\n' ' ' | xargs -n1 | grep -E "\.(css|scss|sass)$" | tr '\n' ' ' || true)
-          if [ ! -z "$CHANGED_STYLE_FILES" ]; then
-            echo "Linting style files:"
-            echo "$CHANGED_STYLE_FILES"
-            pnpm stylelint $CHANGED_STYLE_FILES --max-warnings=0
-          else
-            echo "No style files to lint"
-          fi
+      - if: steps.css-changed.outputs.changed_css_file != ''
+        name: Run Stylelint
+        run: pnpm stylelint ${{ steps.css-changed.outputs.changed_css_file }}
