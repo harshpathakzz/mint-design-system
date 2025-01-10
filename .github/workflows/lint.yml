@@ -8,9 +8,11 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      # Check out the pull request code
+      # Check out the pull request code and fetch main branch
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Fetch all history to ensure main branch is available
 
       # Set up Node.js
       - name: Setup Node.js
@@ -26,11 +28,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # Fetch main branch to compare changes
+      - name: Fetch main branch
+        run: git fetch origin main
+
       # Determine changed files
       - name: Get changed files
         id: changed_files
         run: |
-          echo "$(git diff --name-only origin/main...HEAD)" > changed_files.txt
+          git diff --name-only origin/main...HEAD > changed_files.txt
         shell: bash
 
       # Run ESLint
