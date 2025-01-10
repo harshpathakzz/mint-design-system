@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import { primitiveTokens } from '../../mint-values/index.mjs';
 
 export default {

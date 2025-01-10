@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import { allUtilClasses } from '../../mint-values/index.mjs';
 
 export default {

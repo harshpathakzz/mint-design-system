@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import noRedeclareMintPrimitiveVars from './custom-plugins/no-redeclare-mint-primitive-vars.mjs';
 import noRedeclareMintSemanticVars from './custom-plugins/no-redeclare-mint-semantic-vars.mjs';
 import noRedeclareMintUtil from './custom-plugins/no-redeclare-mint-util.mjs';
