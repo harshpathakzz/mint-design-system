@@ -8,35 +8,43 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      # Check out the pull request code
+      - name: Checkout code
+        uses: actions/checkout@v3
 
+      # Set up Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20.17.0'
 
+      # Install pnpm globally
       - name: Install pnpm
         run: npm install -g pnpm
 
+      # Install project dependencies
       - name: Install dependencies
         run: pnpm install
 
-      - name: Check out PR changes
-        run: |
-          git fetch origin pull/${{ github.event.pull_request.number }}:pr
-          git checkout pr
-
-      - name: Determine changed files
+      # Determine changed files
+      - name: Get changed files
         id: changed_files
         run: |
-          echo "::set-output name=changed_files::$(git diff --name-only origin/main...pr)"
+          echo "$(git diff --name-only origin/main...HEAD)" > changed_files.txt
+        shell: bash
 
+      # Run ESLint
       - name: Run ESLint
+        if: success() && steps.changed_files.outputs.changed_files != ''
         run: |
-          pnpm exec eslint --fix "$(steps.changed_files.outputs.changed_files)" --ext .js,.jsx,.ts,.tsx --ignore-pattern "node_modules/**"
-          pnpm exec eslint "$(steps.changed_files.outputs.changed_files)" --ext .js,.jsx,.ts,.tsx --ignore-pattern "node_modules/**" 
+          pnpm exec eslint --fix $(cat changed_files.txt | grep -E '\.(js|jsx|ts|tsx)$' | xargs) --ext .js,.jsx,.ts,.tsx
+          pnpm exec eslint $(cat changed_files.txt | grep -E '\.(js|jsx|ts|tsx)$' | xargs) --ext .js,.jsx,.ts,.tsx
+        shell: bash
 
+      # Run Stylelint
       - name: Run Stylelint
+        if: success() && steps.changed_files.outputs.changed_files != ''
         run: |
-          pnpm exec stylelint "$(steps.changed_files.outputs.changed_files)" --fix
-          pnpm exec stylelint "$(steps.changed_files.outputs.changed_files)"
+          pnpm exec stylelint $(cat changed_files.txt | grep -E '\.(css|scss)$' | xargs) --fix
+          pnpm exec stylelint $(cat changed_files.txt | grep -E '\.(css|scss)$' | xargs)
+        shell: bash
