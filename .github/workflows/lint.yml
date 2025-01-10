@@ -1,69 +1,39 @@
-name: Lint Check
+name: Lint on Pull Request
 
 on:
   pull_request:
-    branches:
-      - main
-      - master
+    branches: [main] # or any other branches you want to lint on
 
 jobs:
   lint:
-    name: Run Linters
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v19
-
-      - name: Filter JavaScript/TypeScript changed files
-        id: js-ts-files
-        run: |
-          js_ts_files=""
-          IFS=$'\n'
-          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            if [[ $file == *.js || $file == *.jsx || $file == *.ts || $file == *.tsx ]]; then
-              js_ts_files="${js_ts_files} ${file}"
-            fi
-          done
-          echo "js_ts_files=${js_ts_files}" >> $GITHUB_OUTPUT
-
-      - name: Filter CSS/SCSS/SASS changed files
-        id: css-files
-        run: |
-          css_files=""
-          IFS=$'\n'
-          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            if [[ $file == *.css || $file == *.scss || $file == *.sass ]]; then
-              css_files="${css_files} ${file}"
-            fi
-          done
-          echo "css_files=${css_files}" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
+          node-version: '20.17.0'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile=false
+        run: pnpm install
 
-      - if: steps.js-ts-files.outputs.js_ts_files != ''
-        name: Run ESLint
+      - name: Check out PR changes
         run: |
-          echo "Linting JavaScript/TypeScript files: ${{ steps.js-ts-files.outputs.js_ts_files }}"
-          pnpm eslint ${{ steps.js-ts-files.outputs.js_ts_files }} --max-warnings=0
+          git fetch origin pull/${{ github.event.pull_request.number }}:pr
+          git checkout pr
 
-      - if: steps.css-files.outputs.css_files != ''
-        name: Run Stylelint
+      - name: Determine changed files
+        id: changed_files
         run: |
-          echo "Linting CSS/SCSS/SASS files: ${{ steps.css-files.outputs.css_files }}"
-          pnpm stylelint ${{ steps.css-files.outputs.css_files }}
+          echo "::set-output name=changed_files::$(git diff --name-only origin/main...pr)"
+
+      - name: Run ESLint
+        run: |
+          pnpm exec eslint --fix "$(steps.changed_files.outputs.changed_files)" --ext .js,.jsx,.ts,.tsx --ignore-pattern "node_modules/**"
+          pnpm exec eslint "$(steps.changed_files.outputs.changed_files)" --ext .js,.jsx,.ts,.tsx --ignore-pattern "node_modules/**" 
+
+      - name: Run Stylelint
+        run: |
+          pnpm exec stylelint "$(steps.changed_files.outputs.changed_files)" --fix
+          pnpm exec stylelint "$(steps.changed_files.outputs.changed_files)"
