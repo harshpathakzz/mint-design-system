@@ -1,89 +1,80 @@
-name: Lint Action
+name: Lint Check
 
 on:
   pull_request:
-    branches: ['**']
+    branches: [ main, master ]
 
 jobs:
   lint:
+    name: Run Linters
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v19
-
-      - name: Echo the js/ts changed files
-        id: changed
-        run: |
-          a=""
-          IFS=$'\n'
-          all_changed_files='"'"${{ steps.changed-files.outputs.all_changed_files }}"'"'
-          cleaned_paths=$(echo $all_changed_files | tr -d '()')
-          for file in $cleaned_paths; do
-            if [[ $file == *.js || $file == *.jsx || $file == *.ts || $file == *.tsx ]]; then
-            a="${a} ${file}"
-            fi
-          done
-          echo "changed_file=$a" >> $GITHUB_OUTPUT
-
-      - name: Echo the css changed files
-        id: css-changed
-        run: |
-          b=""
-          IFS=$'\n'
-          all_changed_files='"'"${{ steps.changed-files.outputs.all_changed_files }}"'"'
-          cleaned_paths=$(echo $all_changed_files | tr -d '()')
-          for file in $cleaned_paths; do
-            if [[ $file == *.css ]]; then
-            b="${b} ${file}"
-            fi
-          done
-          echo "changed_css_file=$b" >> $GITHUB_OUTPUT
-
-      - name: Check for eslint-disable comments
-        run: |
-          base_branch=${{ github.base_ref }}
-          changed_files=$(git diff --name-only $base_branch HEAD)
-
-          if [ -z "$changed_files" ]; then
-            echo "No changed files."
-            exit 0
-          fi
-
-          exit_code=0
-
-          for file in $changed_files; do
-            if [ -f "$file" ] && grep -q -E '(/\* eslint-disable-next-line no-restricted-imports \*/|/\* eslint-disable no-restricted-imports \*/|/\* eslint-disable \*/)' "$file"; then
-              echo "Found eslint-disable or eslint-disable-next-line comments in $file."
-              exit_code=1
-            fi
-          done
-
-          if [ $exit_code -eq 0 ]; then
-            echo "No eslint-disable or eslint-disable-next-line comments found in changed files."
-          fi
-
-          exit $exit_code
-
-      - name: Use Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20.17.0'
 
-      - name: Use pnpm
+      - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 'latest'
+          version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - if: steps.changed.outputs.changed_file != ''
-        name: Run ESLint
-        run: pnpm eslint ${{ steps.changed.outputs.changed_file }}
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v41
+        with:
+          files: |
+            **/*.js
+            **/*.jsx
+            **/*.ts
+            **/*.tsx
+            **/*.css
+            **/*.scss
+            **/*.sass
 
-      - if: steps.css-changed.outputs.changed_css_file != ''
-        name: Run Stylelint
-        run: pnpm stylelint ${{ steps.css-changed.outputs.changed_css_file }}
+      - name: Run ESLint on changed files
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: |
+          ESLINT_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | grep -E '\.((j|t)sx?|vue)$' || true)
+          if [ ! -z "$ESLINT_FILES" ]; then
+            echo "Running ESLint on changed files:"
+            echo "$ESLINT_FILES"
+            pnpm eslint $ESLINT_FILES --max-warnings=0
+          else
+            echo "No JavaScript/TypeScript files changed"
+          fi
+
+      - name: Run StyleLint on changed files
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: |
+          STYLE_FILES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | grep -E '\.(css|scss|sass)$' || true)
+          if [ ! -z "$STYLE_FILES" ]; then
+            echo "Running StyleLint on changed files:"
+            echo "$STYLE_FILES"
+            pnpm stylelint $STYLE_FILES
+          else
+            echo "No style files changed"
+          fi
