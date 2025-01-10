@@ -19,8 +19,6 @@ const pluginClasses = stylelint.createPlugin(ruleNameClasses, function (enabled)
       const selectors = rule.selector.split(',').map(sel => sel.trim());
 
       selectors.forEach(selector => {
-        // Normalize selector to handle partial matches like pseudo-classes, combinators, etc.
-        const normalizedSelector = selector.replace(/:[:]?\w+|\s*([>+~])\s*/g, '').trim();
 
         bannedClasses.forEach(bannedClass => {
           const classPattern = new RegExp(`\\.${bannedClass}(\\s|$|[:.{])`); // Matches .class, .class:hover, .class.subclass

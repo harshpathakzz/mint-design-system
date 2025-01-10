@@ -9,7 +9,4 @@ public/next.svg
 public/vercel.svg
 public/window.svg
 stylelint-config/index.mjs
-src/app/favicon.ico
-src/app/layout.tsx
-src/app/page.tsx
 stylelint-config

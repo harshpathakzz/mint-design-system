@@ -30,7 +30,15 @@ const eslintConfig = [
       "mint/no-primitive-color-variables": "error",
       "mint/no-redeclare-mint-tokens": "error",
       "mint/no-redeclare-mint-utils": "error"
-    }
+    },
+    ignores: [
+      "**/node_modules/**",
+      "**/public/**",
+      "**/build/**",
+      "**/.next/**",
+      "**/eslint-rules/**",
+      "**/stylelint-config/**"
+    ]
   }
 ];
 
