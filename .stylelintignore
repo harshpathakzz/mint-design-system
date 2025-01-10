@@ -1,0 +1,15 @@
+README.md
+eslint.config.mjs
+next-env.d.ts
+next.config.ts
+package.json
+public/file.svg
+public/globe.svg
+public/next.svg
+public/vercel.svg
+public/window.svg
+stylelint-config/index.mjs
+src/app/favicon.ico
+src/app/layout.tsx
+src/app/page.tsx
+stylelint-config
