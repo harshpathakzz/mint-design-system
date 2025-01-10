@@ -45,17 +45,20 @@ jobs:
 
       # Run ESLint
       - name: Run ESLint
-        run: pnpm run lint:eslint
+        run: |
+          pnpm run lint:eslint
+          ESLINT_EXIT_CODE=$?
 
       # Run Stylelint
       - name: Run Stylelint
-        run: pnpm run lint:stylelint
+        run: |
+          pnpm run lint:stylelint
+          STYLELINT_EXIT_CODE=$?
 
-      # Optionally, you can fail the build if linting fails
+      # Check for lint errors
       - name: Check for lint errors
         run: |
-          if [[ $(pnpm run lint:eslint) != 0 || $(pnpm run lint:stylelint) != 0 ]]; then
+          if [[ $ESLINT_EXIT_CODE != 0 || $STYLELINT_EXIT_CODE != 0 ]]; then
             echo "Linting failed!"
             exit 1
           fi
-
