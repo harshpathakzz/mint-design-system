@@ -1,8 +1,9 @@
-{
-    "extends": [
-      "./stylelint-config/index.mjs"
 
-    ]
-  
-  }
- 
+
+{
+  "extends": [
+    "./stylelint-config/index.mjs"
+
+  ]
+
+}
