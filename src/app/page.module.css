@@ -1,3 +1,15 @@
+html {
+  /* Primitiuve Variables Override for Yellow Theme */
+  --gray50: #fffbea; /* Light yellow background */
+  --green500: #f7c948; /* Yellow accent for text */
+  --gray900: #3b3b3b; /* Dark neutral for text */
+  --gray150: #f7c948; /* Yellow for borders */
+  --green100: #fde68a; /* Light yellow for subtle buttons */
+  --red100: rgba(255, 87, 87, 0.1); /* Subtle red for delete button */
+}
+
+
+
 .page {
   display: flex;
   flex-direction: column;
@@ -42,7 +54,8 @@
   border-radius: 4px;
   font-size: 1rem;
   flex-grow: 1;
-  caret-color: var(--content-accent);
+  caret-color: var(--green500);
+  /* caret-color: var(--content-accent);  */
 }
 
 .addButton {
